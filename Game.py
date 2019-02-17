@@ -56,6 +56,9 @@ class main(object):
 
 
     def frame(self, epoch, gen):
+        global player_count
+        global gens
+
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
@@ -65,12 +68,28 @@ class main(object):
 
                 if event.key == pygame.K_d:
                     self.draw = not self.draw
+                    self.create_text(self.width + self.window_size/2, self.height-30, self.S_font, (200,200,255), "Drawing off")
+                    self.screen.blit(self.background, (0, 0))
+                    pygame.display.update()
 
             if event.type == pygame.MOUSEBUTTONDOWN and self.click == False:
                 mouse_pos = event.pos
+
                 for button in self.buttons:
-                    if button.collidepoint(mouse_pos):
-                        print("button was pressed at {0}".format(mouse_pos))
+                    if button[1].collidepoint(mouse_pos):
+                        if button[0] == "add_player":
+                            if player_count < 8:
+                                player_count += 1
+                        elif button[0] == "remove_player":
+                            if player_count > 2:
+                                player_count -= 1
+                        
+                        if button[0] == "add_gen":
+                            gens += 1
+                        elif button[0] == "remove_gen":
+                            if gens > 1:
+                                gens -= 1
+                            
                 self.click = True
 
             elif event.type == pygame.MOUSEBUTTONUP:
@@ -103,8 +122,8 @@ class main(object):
 
             self.menu()
 
-            pygame.display.update()
             self.screen.blit(self.background, (0, 0))
+            pygame.display.update()
                 
 
         if len(players.sprites()) == 1:
@@ -118,10 +137,11 @@ class main(object):
         text_rect = text_surface.get_rect(center=(x, y))
         self.background.blit(text_surface,  text_rect.topleft)
 
-    def button(self, x, y, width, height, colour, text):
+
+    def button(self, x, y, width, height, colour, text, action):
         rect = pygame.Rect(x - width/2, y - height/2, width, height)
-        if rect not in self.buttons:
-            self.buttons.append(rect)
+        if [action, rect] not in self.buttons:
+            self.buttons.append([action, rect])
         pygame.draw.rect(self.background, colour, rect)
         self.create_text(x, y, self.S_font, (0,0,0), text)
 
@@ -131,9 +151,12 @@ class main(object):
         self.create_text(self.width+self.window_size/2, 30, self.M_font, (200,200,255), "Menu")
 
         self.create_text(self.width+self.window_size/2, 100, self.S_font, (200,200,255), "Players: "+str(player_count))
-        self.button(self.width+self.window_size/2, 150, 100, 40, (200,200,255), "click!")
+        self.button(self.width+self.window_size*3/4, 150, 90, 40, (200,200,255), "add", "add_player")
+        self.button(self.width+self.window_size*1/4, 150, 90, 40, (200,200,255), "remove", "remove_player")
 
-        self.create_text(self.width+self.window_size/2, 200, self.S_font, (200,200,255), "Gens: "+str(gens))  
+        self.create_text(self.width+self.window_size/2, 200, self.S_font, (200,200,255), "Gens: "+str(gens))
+        self.button(self.width+self.window_size*3/4, 250, 90, 40, (200,200,255), "add", "add_gen")
+        self.button(self.width+self.window_size*1/4, 250, 90, 40, (200,200,255), "remove", "remove_gen")
 
 
 
@@ -296,13 +319,16 @@ class Bullet(pygame.sprite.Sprite):
 
 
 
-def epoch(epoch, generations):
-    for gen in range(0,generations):
+def epoch(epoch):
+    current_count = player_count
+    current_gens = gens
+
+    for gen in range(0,current_gens):
         print(str(gen+1)+"....", end="")
         players_now = []
 
-        for add in range(0,player_count):
-            players_now.append(next_players[gen*player_count + add])
+        for add in range(0,current_count):
+            players_now.append(next_players[gen*current_count + add])
 
         game.start(players_now)
         for tick in range(0,10000):
@@ -311,6 +337,8 @@ def epoch(epoch, generations):
 
         players.empty()
         bullets.empty()
+
+    handle(current_count*current_gens)
 
 
 
@@ -322,7 +350,7 @@ def epoch(epoch, generations):
 
 
 
-def handle(p_count):
+def handle(last_count):
     global last_players
     global next_players
     next_players = []
@@ -332,7 +360,7 @@ def handle(p_count):
     last_players[1][1].save(1)
     identifier = 2
     
-    evolve_number = int(p_count/2 - identifier)
+    evolve_number = int(last_count/2 - identifier)
     
     for evolve in range(2, evolve_number, 2):
         last_players[evolve][1].evolve(last_players[evolve+1][1])
@@ -348,7 +376,7 @@ def handle(p_count):
     for weight in range(0, identifier):
         next_players.append(ML(weight, input_size))
 
-    for fill_up in range(0, p_count - len(next_players)):
+    for fill_up in range(0, gens*player_count - len(next_players)):
         next_players.append(ML(-1, input_size))
 
     random.shuffle(next_players)
@@ -379,7 +407,6 @@ if __name__ == '__main__':
 
         print("======================== EPOCH "+str(epochs+1)+" ========================")
         start = time.time()
-        epoch(epochs+1, gens)
-        handle(gens * player_count)
+        epoch(epochs+1)
         _time = round(time.time() - start)
         print("\ntime taken:", _time ,"s | best player:", last_players[0][0], "| worst player:", last_players[-1][0])
