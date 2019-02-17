@@ -28,20 +28,24 @@ gens = 5
 
 
 class main(object):
-    def __init__(self, width, height):
+    def __init__(self, width, height, window_size):
         """Initialize pygame, window, background, font,...
         """
-        self.width = width
+        self.width = width-window_size
         self.height = height
+        self.window_size = window_size
     
         pygame.init()
         pygame.font.init()
         pygame.display.set_caption("Death Fight")
-        self.screen = pygame.display.set_mode((self.width, self.height), pygame.DOUBLEBUF)
+        self.screen = pygame.display.set_mode((width,height), pygame.DOUBLEBUF)
         self.background = pygame.Surface(self.screen.get_size()).convert()
-        #self.S_font = pygame.font.SysFont('mono', 15, bold=True)
-        #self.L_font = pygame.font.SysFont('mono', 100, bold=True)
+        self.S_font = pygame.font.SysFont('calibri', 20, bold=True)
+        self.M_font = pygame.font.SysFont('centurygothic', 50, bold=True)
+        self.L_font = pygame.font.SysFont('centurygothic', 100, bold=True)
+        self.buttons = []
         self.draw = False
+        self.click = False
 
 
     def start(self, p_m):
@@ -51,15 +55,26 @@ class main(object):
             ai_player(players, p_p[val], self.width, self.height, p_m[val])
 
 
-    def frame(self):
+    def frame(self, epoch, gen):
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 pygame.quit()
             elif event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_ESCAPE:
                     return "end"
+
                 if event.key == pygame.K_d:
                     self.draw = not self.draw
+
+            if event.type == pygame.MOUSEBUTTONDOWN and self.click == False:
+                mouse_pos = event.pos
+                for button in self.buttons:
+                    if button.collidepoint(mouse_pos):
+                        print("button was pressed at {0}".format(mouse_pos))
+                self.click = True
+
+            elif event.type == pygame.MOUSEBUTTONUP:
+                self.click = False
 
         players.update()
 
@@ -71,18 +86,23 @@ class main(object):
                 if dist < 100 and bullet.owner != player:
                     player.score += 2
             
-                if pygame.sprite.collide_circle(player, bullet):
-                    bullet.owner.score += 750
-                    player.score -= 500
-                    player.save_score()
-                    bullet.kill()
-                    player.kill()     
+                    if pygame.sprite.collide_circle(player, bullet):
+                        bullet.owner.score += 750
+                        player.score -= 500
+                        player.save_score()
+                        bullet.kill()
+                        player.kill()     
 
         if self.draw:
             self.background.fill((150,150,255))
+
+            self.create_text(self.width/2, self.height/2, self.L_font, (200,200,255), str(epoch)+"."+str(gen))
+
             bullets.draw(self.background)
             players.draw(self.background)
-            
+
+            self.menu()
+
             pygame.display.update()
             self.screen.blit(self.background, (0, 0))
                 
@@ -91,7 +111,29 @@ class main(object):
             players.sprites()[0].score += 1500
             players.sprites()[0].save_score()
             return "end"
-            
+
+
+    def create_text(self, x, y, font, colour, text):
+        text_surface = font.render(text, True, colour)
+        text_rect = text_surface.get_rect(center=(x, y))
+        self.background.blit(text_surface,  text_rect.topleft)
+
+    def button(self, x, y, width, height, colour, text):
+        rect = pygame.Rect(x - width/2, y - height/2, width, height)
+        if rect not in self.buttons:
+            self.buttons.append(rect)
+        pygame.draw.rect(self.background, colour, rect)
+        self.create_text(x, y, self.S_font, (0,0,0), text)
+
+
+    def menu(self):
+        pygame.draw.rect(self.background, (100, 100, 100), (self.width,0,self.window_size,self.height))
+        self.create_text(self.width+self.window_size/2, 30, self.M_font, (200,200,255), "Menu")
+
+        self.create_text(self.width+self.window_size/2, 100, self.S_font, (200,200,255), "Players: "+str(player_count))
+        self.button(self.width+self.window_size/2, 150, 100, 40, (200,200,255), "click!")
+
+        self.create_text(self.width+self.window_size/2, 200, self.S_font, (200,200,255), "Gens: "+str(gens))  
 
 
 
@@ -224,7 +266,7 @@ class Bullet(pygame.sprite.Sprite):
         
         self.angle = math.radians(angle)
         self.vector = [math.cos(self.angle) , math.sin(self.angle)]
-        self.x , self.y = x + self.vector[0]*60,   y - self.vector[1]*60
+        self.x , self.y = x + self.vector[0]*30,   y - self.vector[1]*30
 
         self.image = pygame.image.load("bullet.png")
         self.rect = self.image.get_rect()
@@ -254,25 +296,21 @@ class Bullet(pygame.sprite.Sprite):
 
 
 
-def epoch(generations, player_number):
-    game = main(800,800)
-    
+def epoch(epoch, generations):
     for gen in range(0,generations):
         print(str(gen+1)+"....", end="")
         players_now = []
 
-        for add in range(0,player_number):
-            players_now.append(next_players[gen*player_number + add])
+        for add in range(0,player_count):
+            players_now.append(next_players[gen*player_count + add])
 
         game.start(players_now)
         for tick in range(0,10000):
-            if game.frame() == "end":
+            if game.frame(epoch, gen+1) == "end":
                 break
 
         players.empty()
         bullets.empty()
-            
-    pygame.quit()
 
 
 
@@ -334,13 +372,14 @@ if __name__ == '__main__':
 
     random.shuffle(next_players)
     
+    game = main(1000,800, 200)
 
     for epochs in range(0, 100):
         last_players = []
 
         print("======================== EPOCH "+str(epochs+1)+" ========================")
         start = time.time()
-        epoch(gens, player_count)
+        epoch(epochs+1, gens)
         handle(gens * player_count)
         _time = round(time.time() - start)
         print("\ntime taken:", _time ,"s | best player:", last_players[0][0], "| worst player:", last_players[-1][0])
