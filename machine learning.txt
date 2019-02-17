@@ -1,0 +1,24 @@
+---- step 1: get the program to have a random weight feature
+---- step 2: record the score for the weights
+---- step 3: choose best and base next gen off of the best
+-- step 4: repete untill they taper off
+---- step 5: save the final best one
+
+-- step 6: load the best one into a AI player and have fun :)
+
+
+
+
+training:
+
+two players (both ai) play against each other (5 each gen). then rate the weightings based on score for the gen. top score weight gets to reproduce.
+
+scores:
+-100 for dying
+400 for killing other player
+1000 for winning
+
+
+
+
+values in np array in np array in list or :    [    np.array(    np.array( values    )    )    ]
