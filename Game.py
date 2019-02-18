@@ -16,6 +16,7 @@ p_p = [[30,30,315],[770,770,135],[770,30,225],[30,770,45],
        [400,30,0],[400,770,180],[30,400,270],[770,400,90]]
 players = pygame.sprite.Group()
 bullets = pygame.sprite.Group()
+menu_buttons = pygame.sprite.Group()
 last_players = []
 next_players = []
 input_size = 200
@@ -43,9 +44,13 @@ class main(object):
         self.S_font = pygame.font.SysFont('calibri', 20, bold=True)
         self.M_font = pygame.font.SysFont('centurygothic', 50, bold=True)
         self.L_font = pygame.font.SysFont('centurygothic', 100, bold=True)
-        self.buttons = []
         self.draw = False
+
         self.click = False
+        button(menu_buttons, self.width+self.window_size*3/4, 150, 90, 40, [200,200,255], self.S_font, "add", "add_player")
+        button(menu_buttons, self.width+self.window_size*1/4, 150, 90, 40, [200,200,255], self.S_font, "remove", "remove_player")
+        button(menu_buttons, self.width+self.window_size*3/4, 250, 90, 40, [200,200,255], self.S_font, "add", "add_gen")
+        button(menu_buttons, self.width+self.window_size*1/4, 250, 90, 40, [200,200,255], self.S_font, "remove", "remove_gen")
 
 
     def start(self, p_m):
@@ -72,29 +77,6 @@ class main(object):
                     self.screen.blit(self.background, (0, 0))
                     pygame.display.update()
 
-            if event.type == pygame.MOUSEBUTTONDOWN and self.click == False:
-                mouse_pos = event.pos
-
-                for button in self.buttons:
-                    if button[1].collidepoint(mouse_pos):
-                        if button[0] == "add_player":
-                            if player_count < 8:
-                                player_count += 1
-                        elif button[0] == "remove_player":
-                            if player_count > 2:
-                                player_count -= 1
-                        
-                        if button[0] == "add_gen":
-                            gens += 1
-                        elif button[0] == "remove_gen":
-                            if gens > 1:
-                                gens -= 1
-                            
-                self.click = True
-
-            elif event.type == pygame.MOUSEBUTTONUP:
-                self.click = False
-
         players.update()
 
         for bullet in bullets:
@@ -114,7 +96,6 @@ class main(object):
 
         if self.draw:
             self.background.fill((150,150,255))
-
             self.create_text(self.width/2, self.height/2, self.L_font, (200,200,255), str(epoch)+"."+str(gen))
 
             bullets.draw(self.background)
@@ -138,29 +119,80 @@ class main(object):
         self.background.blit(text_surface,  text_rect.topleft)
 
 
-    def button(self, x, y, width, height, colour, text, action):
-        rect = pygame.Rect(x - width/2, y - height/2, width, height)
-        if [action, rect] not in self.buttons:
-            self.buttons.append([action, rect])
-        pygame.draw.rect(self.background, colour, rect)
-        self.create_text(x, y, self.S_font, (0,0,0), text)
-
-
     def menu(self):
         pygame.draw.rect(self.background, (100, 100, 100), (self.width,0,self.window_size,self.height))
+        pygame.draw.line(self.background, (0, 0, 0), [self.width, 0], [self.width, self.height], 2)
+
         self.create_text(self.width+self.window_size/2, 30, self.M_font, (200,200,255), "Menu")
-
         self.create_text(self.width+self.window_size/2, 100, self.S_font, (200,200,255), "Players: "+str(player_count))
-        self.button(self.width+self.window_size*3/4, 150, 90, 40, (200,200,255), "add", "add_player")
-        self.button(self.width+self.window_size*1/4, 150, 90, 40, (200,200,255), "remove", "remove_player")
-
         self.create_text(self.width+self.window_size/2, 200, self.S_font, (200,200,255), "Gens: "+str(gens))
-        self.button(self.width+self.window_size*3/4, 250, 90, 40, (200,200,255), "add", "add_gen")
-        self.button(self.width+self.window_size*1/4, 250, 90, 40, (200,200,255), "remove", "remove_gen")
+
+        menu_buttons.update(self.background)
+            
 
 
 
 
+class button(pygame.sprite.Sprite):
+    def __init__(self, group, x, y, width, height, colour, font, text, action):
+        pygame.sprite.Sprite.__init__(self, group)
+        
+        self.x, self.y, self.width, self.height = x, y, width, height
+        self.text, self.font, self.action = text, font, action
+        self.click = False
+
+        self.colour = colour
+        self.hover_colour = []
+        self.click_colour = []
+        difference = 15
+        for c in range(0, len(self.colour)):
+            if self.colour[c] <= 255-difference:
+                self.hover_colour.append(self.colour[c]+difference)
+            else:
+                self.hover_colour.append(255)
+            if self.colour[c] >= difference:
+                self.click_colour.append(self.colour[c]-difference)
+            else:
+                self.click_colour.append(0)
+
+        self.image = pygame.Surface((self.width, self.height))
+        self.image.fill(self.colour)
+        self.rect = self.image.get_rect(center = (self.x, self.y))
+        
+
+    def update(self, surface):
+        self.image.fill(self.colour)
+
+        if self.rect.collidepoint(pygame.mouse.get_pos()):
+            self.image.fill(self.hover_colour)
+
+            if pygame.mouse.get_pressed()[0] and self.click == False:
+                self.actions()
+                self.click = True
+
+            if pygame.mouse.get_pressed()[0] == False:
+                self.click = False
+
+        if self.click:
+            self.image.fill(self.click_colour)
+
+        surface.blit(self.image, self.rect)
+        game.create_text(self.x, self.y, self.font, (0,0,0), self.text)
+
+
+    def actions(self):
+        global player_count
+        global gens
+
+        if self.action == "add_player" and player_count < 8:
+            player_count += 1
+        elif self.action == "remove_player" and player_count > 2:
+            player_count -= 1
+        if self.action == "add_gen":
+            gens += 1
+        elif self.action == "remove_gen" and gens > 1:
+            gens -= 1
+            
 
 ############### player
 
@@ -392,6 +424,11 @@ def handle(last_count):
 
 
 if __name__ == '__main__':
+
+
+    game = main(1000,800, 200)
+
+
     for start_new in range(0,5):
         next_players.append(ML(start_new ,input_size))
 
@@ -399,8 +436,7 @@ if __name__ == '__main__':
         next_players.append(ML(-1, input_size))
 
     random.shuffle(next_players)
-    
-    game = main(1000,800, 200)
+
 
     for epochs in range(0, 100):
         last_players = []
