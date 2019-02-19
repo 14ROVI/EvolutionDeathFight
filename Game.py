@@ -14,14 +14,15 @@ import time
 #############################
 p_p = [[30,30,315],[770,770,135],[770,30,225],[30,770,45],
        [400,30,0],[400,770,180],[30,400,270],[770,400,90]]
-players = pygame.sprite.Group()
+all_players = pygame.sprite.Group()
+active_players = pygame.sprite.Group()
 bullets = pygame.sprite.Group()
 menu_buttons = pygame.sprite.Group()
 last_players = []
 next_players = []
 input_size = 200
 player_count = 4
-gens = 5
+gens = 1
 #############################
 
 
@@ -53,11 +54,12 @@ class main(object):
         button(menu_buttons, self.width+self.window_size*1/4, 250, 90, 40, [200,200,255], self.S_font, "remove", "remove_gen")
 
 
+
     def start(self, p_m):
         ## Player(group, start_param, x limit, y limit, ai_model)
         ## please do controls in order "up down left right fire rotateLeft rotateRight"
         for val in range(0,len(p_m)):
-            ai_player(players, p_p[val], self.width, self.height, p_m[val])
+            ai_player([all_players, active_players], p_p[val], self.width, self.height, p_m[val])
 
 
     def frame(self, epoch, gen):
@@ -77,29 +79,28 @@ class main(object):
                     self.screen.blit(self.background, (0, 0))
                     pygame.display.update()
 
-        players.update()
+        active_players.update()
 
         for bullet in bullets:
             bullet.update()
 
-            for player in players:
+            for player in active_players:
                 dist = math.sqrt((bullet.x-player.x)**2 + (bullet.y-player.y)**2)
                 if dist < 100 and bullet.owner != player:
-                    player.score += 2
+                    player.score += 1
             
                     if pygame.sprite.collide_circle(player, bullet):
                         bullet.owner.score += 750
                         player.score -= 500
-                        player.save_score()
                         bullet.kill()
-                        player.kill()     
+                        active_players.remove(player)   
 
         if self.draw:
             self.background.fill((150,150,255))
             self.create_text(self.width/2, self.height/2, self.L_font, (200,200,255), str(epoch)+"."+str(gen))
 
             bullets.draw(self.background)
-            players.draw(self.background)
+            active_players.draw(self.background)
 
             self.menu()
 
@@ -107,9 +108,8 @@ class main(object):
             pygame.display.update()
                 
 
-        if len(players.sprites()) == 1:
-            players.sprites()[0].score += 1500
-            players.sprites()[0].save_score()
+        if len(active_players.sprites()) == 1:
+            active_players.sprites()[0].score += 1500
             return "end"
 
 
@@ -126,6 +126,10 @@ class main(object):
         self.create_text(self.width+self.window_size/2, 30, self.M_font, (200,200,255), "Menu")
         self.create_text(self.width+self.window_size/2, 100, self.S_font, (200,200,255), "Players: "+str(player_count))
         self.create_text(self.width+self.window_size/2, 200, self.S_font, (200,200,255), "Gens: "+str(gens))
+
+        self.create_text(self.width+self.window_size/2, self.height/2, self.M_font, (200,200,255), "Scores")
+        for index in range(0, len(all_players)):
+            self.create_text(self.width+self.window_size/2, self.height/2+35+20*index, self.S_font, (200,200,255), "Player "+str(index+1)+": "+str(all_players.sprites()[index].score))
 
         menu_buttons.update(self.background)
             
@@ -144,7 +148,7 @@ class button(pygame.sprite.Sprite):
         self.colour = colour
         self.hover_colour = []
         self.click_colour = []
-        difference = 15
+        difference = 50
         for c in range(0, len(self.colour)):
             if self.colour[c] <= 255-difference:
                 self.hover_colour.append(self.colour[c]+difference)
@@ -170,8 +174,8 @@ class button(pygame.sprite.Sprite):
                 self.actions()
                 self.click = True
 
-            if pygame.mouse.get_pressed()[0] == False:
-                self.click = False
+        if pygame.mouse.get_pressed()[0] == False:
+            self.click = False
 
         if self.click:
             self.image.fill(self.click_colour)
@@ -201,8 +205,8 @@ class button(pygame.sprite.Sprite):
 
 
 class ai_player(pygame.sprite.Sprite):
-    def __init__(self, group, startXYA, screen_width, screen_height, ai):
-        pygame.sprite.Sprite.__init__(self, group)
+    def __init__(self, groups, startXYA, screen_width, screen_height, ai):
+        pygame.sprite.Sprite.__init__(self, groups[0], groups[1])
 
         self.x, self.y, self.angle, self.speed = startXYA[0], startXYA[1], startXYA[2], 0.5
         self.xmax, self.ymax = screen_width, screen_height
@@ -227,7 +231,7 @@ class ai_player(pygame.sprite.Sprite):
         self_data = self.data()
         ai_data.append(self_data)
 
-        for player in players:
+        for player in active_players:
             if player.data() != self_data:
                 ai_data.append(player.data())
             
@@ -367,7 +371,11 @@ def epoch(epoch):
             if game.frame(epoch, gen+1) == "end":
                 break
 
-        players.empty()
+        for player in all_players.sprites():
+            player.save_score()
+
+        active_players.empty()
+        all_players.empty()
         bullets.empty()
 
     handle(current_count*current_gens)

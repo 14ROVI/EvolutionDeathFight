@@ -21,7 +21,8 @@ class Model():
                                     bias_initializer="random_uniform",
                                     activation="relu"))
             self.model.add(Dense(4, activation="linear"))
-        
+
+            self.model.compile(loss='binary_crossentropy', optimizer="adam")      
         
     def frame(self, input_data): #input_data is a list of the 16 inputs
         input_data = [np.array([input_data])]
