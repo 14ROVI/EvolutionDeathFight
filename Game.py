@@ -22,7 +22,7 @@ last_players = []
 next_players = []
 input_size = 200
 player_count = 4
-gens = 1
+gens = 5
 #############################
 
 
