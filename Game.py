@@ -406,7 +406,7 @@ def handle(last_count):
         last_players[identifier][1].mutate()
         last_players[identifier][1].save(identifier)
         identifier += 1
-    print(identifier)
+
 
     time.sleep(1)
     DeepLearning.clear()
@@ -415,7 +415,6 @@ def handle(last_count):
 
     for identifier in range(0, identifier):
         next_players.append(ML(identifier, input_size))
-        print(identifier)
 
     for fill_up in range(0, gens*player_count - len(next_players)):
         next_players.append(ML(-1, input_size))

@@ -61,7 +61,7 @@ class Model():
                     # mutate them like i want
                     if random.uniform(0, 1) <= 0.1:
                         # maybe dont use a complete new weigh, but rather just change it a bit
-                        one_dim_weight[i] *= np.random.normal(mean=1,std=0.05)
+                        one_dim_weight[i] *= np.random.normal(1,0.05)
 
                 # reshape them back to the original form
                 new_weight_array = one_dim_weight.reshape(save_shape)
