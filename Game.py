@@ -400,21 +400,22 @@ def handle(last_count):
     last_players[1][1].save(1)
     identifier = 2
     
-    evolve_number = int(last_count/2 - identifier)
+    evolve_number = int(last_count/2)
     
-    for evolve in range(2, evolve_number, 2):
-        last_players[evolve][1].evolve(last_players[evolve+1][1])
-        last_players[evolve][1].save(identifier)
+    for identifier in range(identifier, evolve_number):
+        last_players[identifier][1].mutate()
+        last_players[identifier][1].save(identifier)
         identifier += 1
-        
+    print(identifier)
 
     time.sleep(1)
     DeepLearning.clear()
     time.sleep(1)
     
 
-    for weight in range(0, identifier):
-        next_players.append(ML(weight, input_size))
+    for identifier in range(0, identifier):
+        next_players.append(ML(identifier, input_size))
+        print(identifier)
 
     for fill_up in range(0, gens*player_count - len(next_players)):
         next_players.append(ML(-1, input_size))
@@ -437,7 +438,7 @@ if __name__ == '__main__':
     game = main(1000,800, 200)
 
 
-    for start_new in range(0,5):
+    for start_new in range(0,10):
         next_players.append(ML(start_new ,input_size))
 
     for start_new in range(0, gens*player_count - len(next_players)):
@@ -446,7 +447,7 @@ if __name__ == '__main__':
     random.shuffle(next_players)
 
 
-    for epochs in range(0, 100):
+    for epochs in range(0, 10000):
         last_players = []
 
         print("======================== EPOCH "+str(epochs+1)+" ========================")
